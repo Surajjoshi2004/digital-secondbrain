@@ -7,6 +7,7 @@ const rateLimit = require("express-rate-limit");
 const aiRoutes = require("./routes/aiRoutes");
 const { errorHandler, notFoundHandler } = require("./middleware/errorHandler");
 const authRoutes = require("./routes/authRoutes");
+const habitRoutes = require("./routes/habitRoutes");
 const noteRoutes = require("./routes/noteRoutes");
 
 const app = express();
@@ -64,6 +65,7 @@ app.use(
   aiRoutes
 );
 app.use("/api/notes", noteRoutes);
+app.use("/api/habits", habitRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
