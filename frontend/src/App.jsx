@@ -3,12 +3,15 @@ import axios from "axios";
 
 import AuthPanel from "./components/AuthPanel";
 import BrainGraph from "./components/BrainGraph";
+import ByteMascot from "./components/ByteMascot";
+import HabitPanel from "./components/HabitPanel";
 import NoteForm from "./components/NoteForm";
 import NotePanel from "./components/NotePanel";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 const AI_FEATURES_ENABLED = import.meta.env.VITE_ENABLE_GEMINI_FEATURES === "true";
+const getTodayDate = () => new Date().toISOString().slice(0, 10);
 
 const parseTags = (rawTags = "") =>
   rawTags
@@ -124,6 +127,16 @@ function App() {
   });
 
   const [notes, setNotes] = useState([]);
+  const [habitDashboard, setHabitDashboard] = useState(null);
+  const [habitLoading, setHabitLoading] = useState(false);
+  const [habitError, setHabitError] = useState(false);
+  const [habitStatus, setHabitStatus] = useState("");
+  const [habitForm, setHabitForm] = useState({
+    gymCompleted: false,
+    studyHours: "0",
+    sleepHours: "0",
+    note: "",
+  });
   const [contentSuggestions, setContentSuggestions] = useState([]);
   const [draftRecommendations, setDraftRecommendations] = useState([]);
   const [forgottenIdeas, setForgottenIdeas] = useState([]);
@@ -158,6 +171,7 @@ function App() {
     } catch (_error) {
       setUser(null);
       setNotes([]);
+      setHabitDashboard(null);
       setSelectedNoteId(null);
       setAuthError(false);
       setAuthStatus("Sign in to access your private knowledge graph.");
@@ -218,6 +232,44 @@ function App() {
     }
   };
 
+  const loadHabitDashboard = async () => {
+    if (!user) {
+      return null;
+    }
+
+    setHabitLoading(true);
+    setHabitError(false);
+    setHabitStatus("");
+
+    try {
+      const response = await api.get("/habits/dashboard");
+      const dashboard = response.data;
+      const today = dashboard?.today;
+
+      setHabitDashboard(dashboard);
+      if (today) {
+        setHabitForm({
+          gymCompleted: Boolean(today.gymCompleted),
+          studyHours: String(today.studyHours ?? 0),
+          sleepHours: String(today.sleepHours ?? 0),
+          note: today.note || "",
+        });
+      }
+
+      return dashboard;
+    } catch (error) {
+      const errorPayload = extractErrorPayload(
+        error,
+        "Could not load habit dashboard yet."
+      );
+      setHabitError(true);
+      setHabitStatus(errorPayload.message);
+      return null;
+    } finally {
+      setHabitLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadCurrentUser();
   }, []);
@@ -226,6 +278,7 @@ function App() {
     if (user) {
       loadNotes();
       loadForgottenIdeas();
+      loadHabitDashboard();
     }
   }, [user]);
 
@@ -371,6 +424,7 @@ function App() {
 
     setUser(null);
     setNotes([]);
+    setHabitDashboard(null);
     setSelectedNoteId(null);
     setHoveredNodeId(null);
     setPulseOriginId(null);
@@ -378,6 +432,37 @@ function App() {
     setAuthError(false);
     setAuthStatus("Session closed. Sign in to continue.");
     setAuthMessages([]);
+  };
+
+  const handleHabitFieldChange = (event) => {
+    const { name, value, type, checked } = event.target;
+    setHabitForm((current) => ({
+      ...current,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
+  const handleHabitSubmit = async (event) => {
+    event.preventDefault();
+
+    setHabitError(false);
+    setHabitStatus("Saving today habit log...");
+
+    try {
+      await api.post("/habits/log", {
+        date: getTodayDate(),
+        gymCompleted: Boolean(habitForm.gymCompleted),
+        studyHours: Number(habitForm.studyHours || 0),
+        sleepHours: Number(habitForm.sleepHours || 0),
+        note: habitForm.note.trim(),
+      });
+      await loadHabitDashboard();
+      setHabitStatus("Habit log updated for today.");
+    } catch (error) {
+      const errorPayload = extractErrorPayload(error, "Failed to save habit log.");
+      setHabitError(true);
+      setHabitStatus(errorPayload.message);
+    }
   };
 
   const handleSubmit = async (event) => {
@@ -662,6 +747,7 @@ function App() {
     { id: "dashboard", label: "Dashboard" },
     { id: "notes", label: "Notes" },
     { id: "graph", label: "Graph" },
+    { id: "habits", label: "Habits" },
   ];
 
   if (authChecking) {
@@ -1018,69 +1104,8 @@ function App() {
   );
 
   const renderGraphView = () => (
-    <main className="grid flex-1 gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
-      <section className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-6 backdrop-blur-xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-fuchsia-300/80">
-          Graph Filters
-        </p>
-        <h2 className="mt-2 text-2xl font-semibold text-white">
-          Explore neurons without the clutter
-        </h2>
-
-        <div className="mt-5 space-y-4">
-          <input
-            className="brain-input"
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="Search title, content, or tags"
-          />
-          <select
-            className="brain-input"
-            value={activeTag}
-            onChange={(event) => setActiveTag(event.target.value)}
-          >
-            <option value="">All tags</option>
-            {availableTags.map((tag) => (
-              <option key={tag} value={tag}>
-                {tag}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={handleRebuildLinks}
-            className="w-full rounded-full border border-fuchsia-300/20 bg-fuchsia-400/10 px-4 py-3 text-sm font-semibold text-fuchsia-100 transition hover:bg-fuchsia-400/18"
-          >
-            Rebuild Links
-          </button>
-          {(searchQuery || activeTag) && (
-            <button
-              type="button"
-              onClick={() => {
-                setSearchQuery("");
-                setActiveTag("");
-              }}
-              className="w-full rounded-full border border-cyan-300/20 bg-cyan-400/10 px-4 py-3 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-400/18"
-            >
-              Clear Filters
-            </button>
-          )}
-        </div>
-
-        <div className="mt-6 rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
-            Selected Note
-          </p>
-          <p className="mt-3 text-lg font-semibold text-white">
-            {selectedNote?.title || "None selected"}
-          </p>
-          <p className="mt-2 text-sm leading-6 text-slate-300/80">
-            {selectedNote?.content || "Click a neuron to inspect it, then open the Notes page for deeper editing."}
-          </p>
-        </div>
-      </section>
-
-      <section className="glass-panel relative overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950/55 p-3 shadow-[0_0_70px_rgba(56,189,248,0.08)]">
+    <main className="flex flex-1">
+      <section className="glass-panel relative min-h-[78vh] w-full overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950/55 p-3 shadow-[0_0_70px_rgba(56,189,248,0.08)]">
         <BrainGraph
           notes={filteredNotes}
           selectedNoteId={selectedNoteId}
@@ -1088,26 +1113,46 @@ function App() {
           pulseOriginId={pulseOriginId}
           onNodeSelect={setSelectedNoteId}
           onNodeHover={setHoveredNodeId}
+          minimal
         />
       </section>
     </main>
   );
 
-  return (
-    <div className="min-h-screen overflow-hidden bg-slate-950 text-white">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.18),transparent_28%),radial-gradient(circle_at_80%_20%,rgba(168,85,247,0.16),transparent_24%),radial-gradient(circle_at_bottom,rgba(34,211,238,0.16),transparent_22%),linear-gradient(180deg,#020617_0%,#020617_45%,#030712_100%)]" />
-        <div className="absolute left-[-10%] top-[10%] h-80 w-80 rounded-full bg-cyan-400/12 blur-[120px] floating-aurora" />
-        <div className="absolute bottom-[2%] right-[-5%] h-96 w-96 rounded-full bg-fuchsia-500/12 blur-[150px] floating-aurora-delayed" />
-      </div>
+  const renderHabitsView = () => (
+    <HabitPanel
+      habitDashboard={habitDashboard}
+      habitLoading={habitLoading}
+      habitError={habitError}
+      habitStatus={habitStatus}
+      habitForm={habitForm}
+      onRefresh={loadHabitDashboard}
+      onSubmit={handleHabitSubmit}
+      onFieldChange={handleHabitFieldChange}
+    />
+  );
 
+    return (
+      <div className="retro-theme min-h-screen overflow-hidden bg-slate-950 text-white">
+      <div className="pointer-events-none absolute inset-0">
+          <div className="retro-starfield absolute inset-0" />
+          <div className="retro-stars absolute inset-0" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.18),transparent_28%),radial-gradient(circle_at_80%_20%,rgba(168,85,247,0.16),transparent_24%),radial-gradient(circle_at_bottom,rgba(34,211,238,0.16),transparent_22%),linear-gradient(180deg,#020617_0%,#020617_45%,#030712_100%)]" />
+          <div className="absolute left-[-10%] top-[10%] h-80 w-80 rounded-full bg-cyan-400/12 blur-[120px] floating-aurora" />
+          <div className="absolute bottom-[2%] right-[-5%] h-96 w-96 rounded-full bg-fuchsia-500/12 blur-[150px] floating-aurora-delayed" />
+        </div>
       <div className="relative mx-auto flex min-h-screen max-w-[1800px] flex-col px-4 py-4 lg:px-6">
-        <header className="mb-4 flex flex-col gap-4 rounded-[2rem] border border-white/10 bg-white/[0.03] px-6 py-5 backdrop-blur-xl lg:flex-row lg:items-end lg:justify-between">
+        <header className="retro-panel relative mb-4 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.03] px-6 py-5 backdrop-blur-xl">
+          <div className="pointer-events-none absolute right-[-1.5rem] top-1/2 z-0 hidden h-[320px] w-[320px] -translate-y-1/2 opacity-95 lg:block xl:right-0 xl:h-[380px] xl:w-[380px]">
+            <ByteMascot decorative className="h-full w-full scale-[1.18]" />
+          </div>
+
+          <div className="relative z-10 flex flex-col gap-4 lg:pr-[180px] lg:flex-row lg:items-end lg:justify-between xl:pr-[260px]">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.42em] text-cyan-300/80">
+            <p className="pixel-label text-xs font-semibold uppercase tracking-[0.42em] text-cyan-300/80">
               Personal Knowledge Engine
             </p>
-            <h1 className="mt-3 text-4xl font-semibold tracking-tight text-white md:text-6xl">
+            <h1 className="pixel-hero mt-3 text-4xl font-semibold tracking-tight text-white md:text-6xl">
               Your thoughts,
               <span className="block bg-gradient-to-r from-cyan-300 via-blue-400 to-fuchsia-400 bg-clip-text text-transparent">
                 alive as a digital brain
@@ -1130,22 +1175,23 @@ function App() {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="rounded-full border border-fuchsia-400/20 bg-fuchsia-400/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-fuchsia-200 transition hover:bg-fuchsia-400/20"
+                className="retro-btn rounded-full border border-fuchsia-400/20 bg-fuchsia-400/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-fuchsia-200 transition hover:bg-fuchsia-400/20"
               >
                 Logout
               </button>
             </div>
           </div>
+          </div>
         </header>
-        <nav className="mb-4 flex flex-wrap gap-3 rounded-[1.6rem] border border-white/10 bg-white/[0.03] p-3 backdrop-blur-xl">
+        <nav className="retro-panel retro-nav-shell mb-4 flex flex-wrap gap-3 rounded-[1.6rem] border border-white/10 bg-white/[0.03] p-3 backdrop-blur-xl">
           {navigationItems.map((item) => (
             <button
               key={item.id}
               type="button"
               onClick={() => setCurrentView(item.id)}
-              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+              className={`retro-tab rounded-full px-4 py-2 text-sm font-semibold transition ${
                 currentView === item.id
-                  ? "bg-cyan-400 text-slate-950"
+                  ? "retro-tab-active bg-cyan-400 text-slate-950"
                   : "border border-white/10 bg-white/[0.03] text-slate-300 hover:text-white"
               }`}
             >
@@ -1157,6 +1203,7 @@ function App() {
         {currentView === "dashboard" && renderDashboardView()}
         {currentView === "notes" && renderNotesView()}
         {currentView === "graph" && renderGraphView()}
+        {currentView === "habits" && renderHabitsView()}
       </div>
     </div>
   );

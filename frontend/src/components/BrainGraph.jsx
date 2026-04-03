@@ -108,6 +108,7 @@ function BrainGraph({
   pulseOriginId,
   onNodeSelect,
   onNodeHover,
+  minimal = false,
 }) {
   const graphRef = useRef(null);
   const containerRef = useRef(null);
@@ -290,91 +291,112 @@ function BrainGraph({
         <div className="brain-grid absolute inset-0" />
       </div>
 
-      <div className="absolute left-6 top-6 z-10 max-w-xs rounded-2xl border border-white/10 bg-slate-950/55 px-4 py-3 backdrop-blur-md">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-cyan-300/70">
-          Neural View
-        </p>
-        <p className="mt-2 text-sm leading-6 text-slate-200/80">
-          Filter weaker links, focus on the selected neighborhood, and inspect pinned
-          synapses inside the graph itself.
-        </p>
-      </div>
-
-      <div className="absolute inset-x-4 top-4 z-10 rounded-[1.5rem] border border-white/10 bg-slate-950/65 p-4 backdrop-blur-md sm:left-auto sm:right-6 sm:top-6 sm:w-72 sm:inset-x-auto">
-        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-fuchsia-300/70">
-          Graph Controls
-        </p>
-        <p className="mt-2 text-xs text-slate-400">
-          {graphData.links.length} visible connections
-        </p>
-        <div className="mt-4 grid gap-3 grid-cols-2">
+      {minimal ? (
+        <div className="absolute right-6 top-6 z-10 flex gap-3">
           <button
             type="button"
             onClick={handleResetView}
-            className="w-full rounded-full border border-cyan-300/20 bg-cyan-400/10 px-4 py-3 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-400/18"
+            className="rounded-full border border-white/10 bg-slate-950/60 px-4 py-2 text-sm font-medium text-slate-100 backdrop-blur-md transition hover:bg-slate-900/80"
           >
-            Reset View
+            Reset
           </button>
           <button
             type="button"
             onClick={handleToggleFullscreen}
-            className="w-full rounded-full border border-fuchsia-300/20 bg-fuchsia-400/10 px-4 py-3 text-sm font-semibold text-fuchsia-100 transition hover:bg-fuchsia-400/18"
+            className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-4 py-2 text-sm font-medium text-cyan-100 backdrop-blur-md transition hover:bg-cyan-400/18"
           >
-            {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+            {isFullscreen ? "Exit" : "Fullscreen"}
           </button>
         </div>
-        <label className="mt-4 block">
-          <span className="text-xs uppercase tracking-[0.24em] text-slate-400">
-            Minimum Link Strength: {minScore.toFixed(2)}
-          </span>
-          <input
-            className="mt-2 w-full"
-            type="range"
-            min="0"
-            max="0.99"
-            step="0.01"
-            value={minScore}
-            onChange={(event) => setMinScore(Number(event.target.value))}
-          />
-        </label>
-        <label className="mt-4 flex items-center gap-3 text-sm text-slate-300">
-          <input
-            type="checkbox"
-            checked={focusMode}
-            onChange={(event) => setFocusMode(event.target.checked)}
-          />
-          Focus selected note neighborhood
-        </label>
-        <label className="mt-3 flex items-center gap-3 text-sm text-slate-300">
-          <input
-            type="checkbox"
-            checked={showLabels}
-            onChange={(event) => setShowLabels(event.target.checked)}
-          />
-          Always show labels for active nodes
-        </label>
-        {!!categoryLegend.length && (
-          <div className="mt-4">
-            <p className="text-xs uppercase tracking-[0.24em] text-slate-400">
-              Category Colors
+      ) : (
+        <>
+          <div className="absolute left-6 top-6 z-10 max-w-xs rounded-2xl border border-white/10 bg-slate-950/55 px-4 py-3 backdrop-blur-md">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-cyan-300/70">
+              Neural View
             </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {categoryLegend.map((item) => (
-                <span
-                  key={item.category}
-                  className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200"
-                >
-                  <span
-                    className="h-2.5 w-2.5 rounded-full"
-                    style={{ backgroundColor: item.color }}
-                  />
-                  {item.category}
-                </span>
-              ))}
-            </div>
+            <p className="mt-2 text-sm leading-6 text-slate-200/80">
+              Filter weaker links, focus on the selected neighborhood, and inspect pinned
+              synapses inside the graph itself.
+            </p>
           </div>
-        )}
-      </div>
+
+          <div className="absolute inset-x-4 top-4 z-10 rounded-[1.5rem] border border-white/10 bg-slate-950/65 p-4 backdrop-blur-md sm:left-auto sm:right-6 sm:top-6 sm:w-72 sm:inset-x-auto">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-fuchsia-300/70">
+              Graph Controls
+            </p>
+            <p className="mt-2 text-xs text-slate-400">
+              {graphData.links.length} visible connections
+            </p>
+            <div className="mt-4 grid gap-3 grid-cols-2">
+              <button
+                type="button"
+                onClick={handleResetView}
+                className="w-full rounded-full border border-cyan-300/20 bg-cyan-400/10 px-4 py-3 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-400/18"
+              >
+                Reset View
+              </button>
+              <button
+                type="button"
+                onClick={handleToggleFullscreen}
+                className="w-full rounded-full border border-fuchsia-300/20 bg-fuchsia-400/10 px-4 py-3 text-sm font-semibold text-fuchsia-100 transition hover:bg-fuchsia-400/18"
+              >
+                {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+              </button>
+            </div>
+            <label className="mt-4 block">
+              <span className="text-xs uppercase tracking-[0.24em] text-slate-400">
+                Minimum Link Strength: {minScore.toFixed(2)}
+              </span>
+              <input
+                className="mt-2 w-full"
+                type="range"
+                min="0"
+                max="0.99"
+                step="0.01"
+                value={minScore}
+                onChange={(event) => setMinScore(Number(event.target.value))}
+              />
+            </label>
+            <label className="mt-4 flex items-center gap-3 text-sm text-slate-300">
+              <input
+                type="checkbox"
+                checked={focusMode}
+                onChange={(event) => setFocusMode(event.target.checked)}
+              />
+              Focus selected note neighborhood
+            </label>
+            <label className="mt-3 flex items-center gap-3 text-sm text-slate-300">
+              <input
+                type="checkbox"
+                checked={showLabels}
+                onChange={(event) => setShowLabels(event.target.checked)}
+              />
+              Always show labels for active nodes
+            </label>
+            {!!categoryLegend.length && (
+              <div className="mt-4">
+                <p className="text-xs uppercase tracking-[0.24em] text-slate-400">
+                  Category Colors
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {categoryLegend.map((item) => (
+                    <span
+                      key={item.category}
+                      className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200"
+                    >
+                      <span
+                        className="h-2.5 w-2.5 rounded-full"
+                        style={{ backgroundColor: item.color }}
+                      />
+                      {item.category}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
       {!graphData.links.length && (
         <div className="absolute inset-x-6 bottom-6 z-10 rounded-[1.4rem] border border-dashed border-white/10 bg-slate-950/70 p-4 text-sm leading-7 text-slate-300/80 backdrop-blur-md">
@@ -383,7 +405,7 @@ function BrainGraph({
         </div>
       )}
 
-      {(hoveredNode || selectedNode) && (
+      {!minimal && (hoveredNode || selectedNode) && (
         <div className="absolute bottom-6 left-6 z-10 max-w-sm rounded-[1.6rem] border border-white/10 bg-slate-950/70 p-4 backdrop-blur-md">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-fuchsia-300/70">
             {hoveredNode ? "Hover Signal" : "Focused Thought"}

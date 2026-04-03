@@ -152,7 +152,7 @@ const upsertHabitLog = asyncHandler(async (req, res) => {
   const log = await HabitLog.findOneAndUpdate(
     { owner: req.user._id, date: logDate },
     { $set: update, $setOnInsert: { owner: req.user._id, date: logDate } },
-    { new: true, upsert: true, runValidators: true }
+    { returnDocument: "after", upsert: true, runValidators: true }
   );
 
   res.status(200).json(serializeLog(log));

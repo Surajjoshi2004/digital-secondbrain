@@ -1,0 +1,45 @@
+<svg width="680" height="760" viewBox="0 0 680 760" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="70" y1="40" x2="610" y2="720" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1D1454"/>
+      <stop offset="1" stop-color="#061027"/>
+    </linearGradient>
+    <linearGradient id="bot" x1="340" y1="260" x2="340" y2="620" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#64E6FF"/>
+      <stop offset="1" stop-color="#2696E8"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(340 260) rotate(90) scale(160 220)">
+      <stop stop-color="#46E3FF" stop-opacity="0.7"/>
+      <stop offset="1" stop-color="#46E3FF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect x="0.5" y="0.5" width="679" height="759" rx="38" fill="#040816"/>
+  <rect x="22" y="22" width="636" height="716" rx="30" fill="url(#bg)"/>
+  <g opacity="0.65">
+    <circle cx="122" cy="120" r="2.6" fill="white"/>
+    <circle cx="166" cy="88" r="1.6" fill="#7DD3FC"/>
+    <circle cx="220" cy="150" r="2.2" fill="white"/>
+    <circle cx="516" cy="110" r="1.8" fill="#F0ABFC"/>
+    <circle cx="562" cy="146" r="2.4" fill="white"/>
+    <circle cx="480" cy="182" r="1.2" fill="#7DD3FC"/>
+    <circle cx="120" cy="220" r="1.2" fill="#F0ABFC"/>
+    <circle cx="600" cy="250" r="2" fill="white"/>
+  </g>
+  <ellipse cx="340" cy="260" rx="220" ry="160" fill="url(#halo)"/>
+  <circle cx="340" cy="320" r="132" fill="#102B68"/>
+  <circle cx="340" cy="320" r="118" fill="url(#bot)"/>
+  <circle cx="300" cy="300" r="18" fill="#091936"/>
+  <circle cx="380" cy="300" r="18" fill="#091936"/>
+  <circle cx="296" cy="294" r="5" fill="white"/>
+  <circle cx="376" cy="294" r="5" fill="white"/>
+  <path d="M300 360C319 386 361 386 380 360" stroke="#091936" stroke-width="12" stroke-linecap="round"/>
+  <rect x="260" y="430" width="160" height="168" rx="52" fill="url(#bot)"/>
+  <rect x="232" y="468" width="52" height="112" rx="26" fill="#39B6F4"/>
+  <rect x="396" y="468" width="52" height="112" rx="26" fill="#39B6F4"/>
+  <circle cx="340" cy="190" r="18" fill="#57DFFF"/>
+  <rect x="332" y="142" width="16" height="52" rx="8" fill="#2CA2E8"/>
+  <circle cx="340" cy="142" r="12" fill="#9AE9FF"/>
+  <rect x="74" y="630" width="532" height="72" rx="18" fill="#081329" fill-opacity="0.72"/>
+  <text x="100" y="676" fill="#C8FBFF" font-size="34" font-family="Verdana, sans-serif" font-weight="700">Mission: Build Your Brain</text>
+  <rect x="0.5" y="0.5" width="679" height="759" rx="38" stroke="#60A5FA" stroke-opacity="0.3"/>
+</svg>
