@@ -109,6 +109,8 @@ function BrainGraph({
   onNodeSelect,
   onNodeHover,
   minimal = false,
+  defaultFullscreen = false,
+  autoFocusOnSelect = false,
 }) {
   const graphRef = useRef(null);
   const containerRef = useRef(null);
@@ -119,6 +121,7 @@ function BrainGraph({
   const [focusMode, setFocusMode] = useState(false);
   const [showLabels, setShowLabels] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(defaultFullscreen);
 
   const graphData = useMemo(
     () => buildBrainGraph(notes, minScore, focusMode, selectedNoteId),
@@ -215,6 +218,12 @@ function BrainGraph({
   }, [pulseOriginId]);
 
   useEffect(() => {
+    if (autoFocusOnSelect && selectedNoteId) {
+      setFocusMode(true);
+    }
+  }, [autoFocusOnSelect, selectedNoteId]);
+
+  useEffect(() => {
     let animationFrameId = 0;
 
     const tick = () => {
@@ -278,7 +287,11 @@ function BrainGraph({
   return (
     <div
       ref={containerRef}
-      className="relative h-full min-h-[620px] overflow-hidden rounded-[2.2rem] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.12),transparent_28%),radial-gradient(circle_at_bottom,rgba(139,92,246,0.12),transparent_32%),linear-gradient(180deg,rgba(2,6,23,0.96),rgba(3,7,18,0.92))]"
+      className={`relative h-full min-h-[620px] overflow-hidden bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.12),transparent_28%),radial-gradient(circle_at_bottom,rgba(139,92,246,0.12),transparent_32%),linear-gradient(180deg,rgba(2,6,23,0.96),rgba(3,7,18,0.92))] ${
+        isExpanded
+          ? "fixed inset-0 z-50 rounded-none border-0"
+          : "rounded-[2.2rem] border border-white/10"
+      }`}
       style={{ touchAction: "none", overscrollBehavior: "contain" }}
       onWheel={(event) => {
         event.preventDefault();
@@ -293,6 +306,13 @@ function BrainGraph({
 
       {minimal ? (
         <div className="absolute right-6 top-6 z-10 flex gap-3">
+          <button
+            type="button"
+            onClick={() => setIsExpanded((current) => !current)}
+            className="rounded-full border border-fuchsia-300/20 bg-fuchsia-400/10 px-4 py-2 text-sm font-medium text-fuchsia-100 backdrop-blur-md transition hover:bg-fuchsia-400/18"
+          >
+            {isExpanded ? "Resize View" : "Open Full View"}
+          </button>
           <button
             type="button"
             onClick={handleResetView}
@@ -327,6 +347,11 @@ function BrainGraph({
             <p className="mt-2 text-xs text-slate-400">
               {graphData.links.length} visible connections
             </p>
+            {autoFocusOnSelect && selectedNoteId && (
+              <p className="mt-2 text-xs leading-5 text-cyan-200/80">
+                Clicking a node zooms into its directly connected thoughts.
+              </p>
+            )}
             <div className="mt-4 grid gap-3 grid-cols-2">
               <button
                 type="button"

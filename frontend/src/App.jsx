@@ -743,6 +743,21 @@ function App() {
     }
   };
 
+  const openGraphView = (noteId = null) => {
+    if (noteId) {
+      setSelectedNoteId(noteId);
+    }
+
+    if (!document.fullscreenElement) {
+      const fullscreenRequest = document.documentElement?.requestFullscreen?.();
+      fullscreenRequest?.catch?.(() => {
+        // Some browsers may block fullscreen if the gesture context is lost.
+      });
+    }
+
+    setCurrentView("graph");
+  };
+
   const navigationItems = [
     { id: "dashboard", label: "Dashboard" },
     { id: "notes", label: "Notes" },
@@ -951,7 +966,7 @@ function App() {
             </div>
             <button
               type="button"
-              onClick={() => setCurrentView("graph")}
+              onClick={() => openGraphView()}
               className="rounded-full border border-fuchsia-300/20 bg-fuchsia-400/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-fuchsia-100 transition hover:bg-fuchsia-400/18"
             >
               Open Graph
@@ -963,10 +978,7 @@ function App() {
               selectedNoteId={selectedNoteId}
               hoveredNodeId={hoveredNodeId}
               pulseOriginId={pulseOriginId}
-              onNodeSelect={(noteId) => {
-                setSelectedNoteId(noteId);
-                setCurrentView("graph");
-              }}
+              onNodeSelect={(noteId) => openGraphView(noteId)}
               onNodeHover={setHoveredNodeId}
             />
           </div>
@@ -1114,6 +1126,8 @@ function App() {
           onNodeSelect={setSelectedNoteId}
           onNodeHover={setHoveredNodeId}
           minimal
+          defaultFullscreen
+          autoFocusOnSelect
         />
       </section>
     </main>
@@ -1188,7 +1202,9 @@ function App() {
             <button
               key={item.id}
               type="button"
-              onClick={() => setCurrentView(item.id)}
+              onClick={() =>
+                item.id === "graph" ? openGraphView() : setCurrentView(item.id)
+              }
               className={`retro-tab rounded-full px-4 py-2 text-sm font-semibold transition ${
                 currentView === item.id
                   ? "retro-tab-active bg-cyan-400 text-slate-950"
