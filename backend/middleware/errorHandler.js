@@ -69,6 +69,14 @@ const normalizeError = (err) => {
     };
   }
 
+  if (err?.name === "JsonWebTokenError" || err?.name === "TokenExpiredError") {
+    return {
+      statusCode: 401,
+      message: "Session expired. Please log in again.",
+      details: [],
+    };
+  }
+
   const mongoError = formatMongoServerError(err);
   if (mongoError) {
     return mongoError;
@@ -76,14 +84,18 @@ const normalizeError = (err) => {
 
   return {
     statusCode: err.statusCode || 500,
-    message: err.message || "Internal server error.",
+    message: err.statusCode && err.statusCode < 500 ? err.message : "Internal server error.",
     details: [],
   };
 };
 
 const errorHandler = (err, _req, res, _next) => {
   const normalizedError = normalizeError(err);
-  const { statusCode, message, details } = normalizedError;
+  const { statusCode, details } = normalizedError;
+  const message =
+    statusCode >= 500 && process.env.NODE_ENV === "production"
+      ? "Internal server error."
+      : normalizedError.message;
 
   if (statusCode >= 500) {
     console.error(err);

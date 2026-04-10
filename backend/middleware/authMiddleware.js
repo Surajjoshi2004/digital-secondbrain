@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const ApiError = require("../utils/ApiError");
 const asyncHandler = require("../utils/asyncHandler");
+const { getJwtSecret } = require("../utils/generateToken");
 
 const protect = asyncHandler(async (req, _res, next) => {
   const token = req.cookies?.token;
@@ -11,7 +12,7 @@ const protect = asyncHandler(async (req, _res, next) => {
     throw new ApiError(401, "Not authorized. Please log in.");
   }
 
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const decoded = jwt.verify(token, getJwtSecret());
   const user = await User.findById(decoded.userId).select("-password");
 
   if (!user) {

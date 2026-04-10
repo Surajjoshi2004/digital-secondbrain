@@ -6,35 +6,38 @@ const rateLimit = require("express-rate-limit");
 
 const aiRoutes = require("./routes/aiRoutes");
 const { errorHandler, notFoundHandler } = require("./middleware/errorHandler");
+const {
+  aiRateLimitOptions,
+  authRateLimitOptions,
+  corsOptions,
+  globalRateLimitOptions,
+  initializeEmptyBody,
+  rejectUnsafeMongoKeys,
+  requireJsonBody,
+} = require("./middleware/security");
 const authRoutes = require("./routes/authRoutes");
 const habitRoutes = require("./routes/habitRoutes");
 const noteRoutes = require("./routes/noteRoutes");
 
 const app = express();
 
-const allowedOrigin = process.env.CLIENT_URL || "http://localhost:3000";
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
 
-app.use(
-  cors({
-    origin: allowedOrigin,
-    credentials: true,
-  })
-);
+app.disable("x-powered-by");
+app.use(cors(corsOptions));
 app.use(
   helmet({
     crossOriginResourcePolicy: false,
   })
 );
-app.use(
-  rateLimit({
-    windowMs: 15 * 60 * 1000,
-    limit: 200,
-    standardHeaders: true,
-    legacyHeaders: false,
-  })
-);
+app.use(rateLimit(globalRateLimitOptions));
+app.use(requireJsonBody);
 app.use(express.json({ limit: "10kb" }));
+app.use(initializeEmptyBody);
 app.use(cookieParser());
+app.use(rejectUnsafeMongoKeys);
 
 app.get("/api/health", (_req, res) => {
   res.status(200).json({
@@ -46,22 +49,12 @@ app.get("/api/health", (_req, res) => {
 
 app.use(
   "/api/auth",
-  rateLimit({
-    windowMs: 15 * 60 * 1000,
-    limit: 20,
-    standardHeaders: true,
-    legacyHeaders: false,
-  }),
+  rateLimit(authRateLimitOptions),
   authRoutes
 );
 app.use(
   "/api/ai",
-  rateLimit({
-    windowMs: 15 * 60 * 1000,
-    limit: 40,
-    standardHeaders: true,
-    legacyHeaders: false,
-  }),
+  rateLimit(aiRateLimitOptions),
   aiRoutes
 );
 app.use("/api/notes", noteRoutes);

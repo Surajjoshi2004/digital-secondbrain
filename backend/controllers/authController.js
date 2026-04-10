@@ -5,10 +5,14 @@ const ApiError = require("../utils/ApiError");
 const asyncHandler = require("../utils/asyncHandler");
 const generateToken = require("../utils/generateToken");
 
+const MAX_PASSWORD_LENGTH = 72;
+const MIN_PASSWORD_LENGTH = 8;
+
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  sameSite: "lax",
+  sameSite: process.env.COOKIE_SAME_SITE || "lax",
   secure: process.env.NODE_ENV === "production",
+  path: "/",
   maxAge: 7 * 24 * 60 * 60 * 1000,
 };
 
@@ -24,20 +28,28 @@ const sanitizeUser = (user) => ({
 
 const register = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
+  const normalizedName = typeof name === "string" ? name.trim() : "";
+  const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
 
-  if (!name || !email || !password) {
+  if (!normalizedName || !normalizedEmail || typeof password !== "string") {
     throw new ApiError(400, "Name, email, and password are required.");
   }
 
-  if (!isValidEmail(email)) {
+  if (normalizedName.length < 2 || normalizedName.length > 50) {
+    throw new ApiError(400, "Name must be between 2 and 50 characters.");
+  }
+
+  if (!isValidEmail(normalizedEmail)) {
     throw new ApiError(400, "Please provide a valid email address.");
   }
 
-  if (password.length < 8) {
-    throw new ApiError(400, "Password must be at least 8 characters long.");
+  if (password.length < MIN_PASSWORD_LENGTH || password.length > MAX_PASSWORD_LENGTH) {
+    throw new ApiError(
+      400,
+      `Password must be between ${MIN_PASSWORD_LENGTH} and ${MAX_PASSWORD_LENGTH} characters long.`
+    );
   }
 
-  const normalizedEmail = email.trim().toLowerCase();
   const existingUser = await User.findOne({ email: normalizedEmail });
 
   if (existingUser) {
@@ -47,7 +59,7 @@ const register = asyncHandler(async (req, res) => {
   const hashedPassword = await bcrypt.hash(password, 12);
 
   const user = await User.create({
-    name: name.trim(),
+    name: normalizedName,
     email: normalizedEmail,
     password: hashedPassword,
   });
@@ -64,8 +76,12 @@ const register = asyncHandler(async (req, res) => {
 const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
-  if (!email || !password) {
+  if (typeof email !== "string" || typeof password !== "string") {
     throw new ApiError(400, "Email and password are required.");
+  }
+
+  if (password.length > MAX_PASSWORD_LENGTH) {
+    throw new ApiError(401, "Invalid email or password.");
   }
 
   const normalizedEmail = email.trim().toLowerCase();

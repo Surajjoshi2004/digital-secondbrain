@@ -40,15 +40,23 @@ const noteSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+      maxlength: 200,
     },
     content: {
       type: String,
       required: true,
       trim: true,
+      maxlength: 20000,
     },
     tags: {
       type: [String],
       default: [],
+      validate: {
+        validator(tags) {
+          return tags.length <= 20 && tags.every((tag) => tag.length <= 50);
+        },
+        message: "A note can have at most 20 tags, each 50 characters or fewer.",
+      },
     },
     keywords: {
       type: [String],

@@ -11,7 +11,45 @@ const {
   syncRelationshipsForNote,
 } = require("../services/linkService");
 
+const MAX_BATCH_NOTES = 25;
+const MAX_CONTENT_LENGTH = 20000;
+const MAX_SEARCH_LENGTH = 100;
+const MAX_TAG_LENGTH = 50;
+const MAX_TAGS = 20;
+const MAX_TITLE_LENGTH = 200;
+
 const validateObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const normalizeTextField = (
+  value,
+  fieldName,
+  maxLength,
+  { required = false, allowEmpty = false } = {}
+) => {
+  if (value === undefined || value === null) {
+    if (required) {
+      throw new ApiError(400, `${fieldName} is required.`);
+    }
+
+    return undefined;
+  }
+
+  if (typeof value !== "string") {
+    throw new ApiError(400, `${fieldName} must be a string.`);
+  }
+
+  const normalized = value.trim();
+  if ((required || !allowEmpty) && !normalized) {
+    throw new ApiError(400, `${fieldName} is required.`);
+  }
+
+  if (normalized.length > maxLength) {
+    throw new ApiError(400, `${fieldName} must be ${maxLength} characters or fewer.`);
+  }
+
+  return normalized;
+};
 
 const ensureValidNoteId = (id) => {
   if (!validateObjectId(id)) {
@@ -20,13 +58,34 @@ const ensureValidNoteId = (id) => {
 };
 
 const normalizeTags = (tags) => {
-  if (!Array.isArray(tags)) {
+  if (tags === undefined) {
     return [];
   }
 
-  return tags
-    .map((tag) => (typeof tag === "string" ? tag.trim() : ""))
-    .filter(Boolean);
+  if (!Array.isArray(tags)) {
+    throw new ApiError(400, "tags must be an array.");
+  }
+
+  if (tags.length > MAX_TAGS) {
+    throw new ApiError(400, `A note can have at most ${MAX_TAGS} tags.`);
+  }
+
+  return [...new Set(
+    tags
+      .map((tag) => {
+        if (typeof tag !== "string") {
+          throw new ApiError(400, "Each tag must be a string.");
+        }
+
+        const normalized = tag.trim();
+        if (normalized.length > MAX_TAG_LENGTH) {
+          throw new ApiError(400, `Tags must be ${MAX_TAG_LENGTH} characters or fewer.`);
+        }
+
+        return normalized;
+      })
+      .filter(Boolean)
+  )];
 };
 
 const normalizeNoteInput = (note, index = 0) => {
@@ -34,17 +93,11 @@ const normalizeNoteInput = (note, index = 0) => {
     throw new ApiError(400, `Invalid note payload at position ${index + 1}.`);
   }
 
-  const title = typeof note.title === "string" ? note.title.trim() : "";
-  const content = typeof note.content === "string" ? note.content.trim() : "";
+  const title = normalizeTextField(note.title, "Title", MAX_TITLE_LENGTH, { required: true });
+  const content = normalizeTextField(note.content, "Content", MAX_CONTENT_LENGTH, {
+    required: true,
+  });
   const tags = normalizeTags(note.tags);
-
-  if (!title) {
-    throw new ApiError(400, `Title is required for note ${index + 1}.`);
-  }
-
-  if (!content) {
-    throw new ApiError(400, `Content is required for note ${index + 1}.`);
-  }
 
   return {
     title,
@@ -58,6 +111,11 @@ const createNote = asyncHandler(async (req, res) => {
   const inputNotes = Array.isArray(req.body.notes) && req.body.notes.length
     ? req.body.notes
     : [req.body];
+
+  if (inputNotes.length > MAX_BATCH_NOTES) {
+    throw new ApiError(400, `You can create at most ${MAX_BATCH_NOTES} notes at once.`);
+  }
+
   const notePayloads = inputNotes.map((note, index) => normalizeNoteInput(note, index));
 
   const createdNotes = await Note.insertMany(
@@ -99,16 +157,21 @@ const getAllNotes = asyncHandler(async (req, res) => {
   const search = typeof req.query.q === "string" ? req.query.q.trim() : "";
   const tag = typeof req.query.tag === "string" ? req.query.tag.trim() : "";
 
+  if (search.length > MAX_SEARCH_LENGTH || tag.length > MAX_TAG_LENGTH) {
+    throw new ApiError(400, "Search filters are too long.");
+  }
+
   if (search) {
+    const escapedSearch = escapeRegex(search);
     query.$or = [
-      { title: { $regex: search, $options: "i" } },
-      { content: { $regex: search, $options: "i" } },
-      { tags: { $elemMatch: { $regex: search, $options: "i" } } },
+      { title: { $regex: escapedSearch, $options: "i" } },
+      { content: { $regex: escapedSearch, $options: "i" } },
+      { tags: { $elemMatch: { $regex: escapedSearch, $options: "i" } } },
     ];
   }
 
   if (tag) {
-    query.tags = { $elemMatch: { $regex: `^${tag}$`, $options: "i" } };
+    query.tags = { $elemMatch: { $regex: `^${escapeRegex(tag)}$`, $options: "i" } };
   }
 
   const notes = await Note.find(query)
@@ -138,7 +201,6 @@ const updateNote = asyncHandler(async (req, res) => {
   const { id } = req.params;
   ensureValidNoteId(id);
 
-  const { title, content, tags } = req.body;
   const note = await Note.findOne({ _id: id, owner: req.user._id }).select(
     "+keywords"
   );
@@ -147,9 +209,19 @@ const updateNote = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Note not found.");
   }
 
-  note.title = title ?? note.title;
-  note.content = content ?? note.content;
-  note.tags = tags ? normalizeTags(tags) : note.tags;
+  const title = normalizeTextField(req.body.title, "Title", MAX_TITLE_LENGTH);
+  const content = normalizeTextField(req.body.content, "Content", MAX_CONTENT_LENGTH);
+  const tags = req.body.tags === undefined ? undefined : normalizeTags(req.body.tags);
+
+  if (title !== undefined) {
+    note.title = title;
+  }
+  if (content !== undefined) {
+    note.content = content;
+  }
+  if (tags !== undefined) {
+    note.tags = tags;
+  }
   note.keywords = extractKeywords(note);
 
   await note.save();
