@@ -5,3 +5,5 @@
 
 [build.environment]
   NODE_VERSION = "20"
+  # Set this in Netlify's environment variables for production builds:
+  # VITE_API_BASE_URL = "https://your-backend-host/api"

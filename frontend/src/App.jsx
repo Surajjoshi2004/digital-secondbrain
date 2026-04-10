@@ -25,6 +25,8 @@ const getDefaultApiBaseUrl = () => {
 };
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || getDefaultApiBaseUrl();
+const API_CONFIGURATION_MESSAGE =
+  "Set VITE_API_BASE_URL to your backend URL ending in /api.";
 const AI_FEATURES_ENABLED = import.meta.env.VITE_ENABLE_GEMINI_FEATURES === "true";
 const getTodayDate = () => new Date().toISOString().slice(0, 10);
 
@@ -85,6 +87,13 @@ const splitImportedNotes = (rawText) =>
     .filter(Boolean);
 
 const extractErrorPayload = (error, fallbackMessage) => {
+  if (error?.code === "API_BASE_URL_MISSING") {
+    return {
+      message: "Backend API is not configured for this frontend build.",
+      messages: [API_CONFIGURATION_MESSAGE],
+    };
+  }
+
   const responseData = error.response?.data;
   const statusCode = error.response?.status;
   const detailMessages = Array.isArray(responseData?.details)
@@ -101,7 +110,7 @@ const extractErrorPayload = (error, fallbackMessage) => {
       error.message,
       API_BASE_URL
         ? `API target: ${API_BASE_URL}`
-        : "Set VITE_API_BASE_URL to your deployed backend URL.",
+        : API_CONFIGURATION_MESSAGE,
     ];
   }
 
@@ -185,7 +194,29 @@ function App() {
     []
   );
 
+  const ensureApiConfigured = () => {
+    if (API_BASE_URL) {
+      return;
+    }
+
+    const configurationError = new Error(API_CONFIGURATION_MESSAGE);
+    configurationError.code = "API_BASE_URL_MISSING";
+    throw configurationError;
+  };
+
   const loadCurrentUser = async () => {
+    if (!API_BASE_URL) {
+      setUser(null);
+      setNotes([]);
+      setHabitDashboard(null);
+      setSelectedNoteId(null);
+      setAuthError(true);
+      setAuthStatus("Backend API is not configured for this frontend build.");
+      setAuthMessages([API_CONFIGURATION_MESSAGE]);
+      setAuthChecking(false);
+      return null;
+    }
+
     try {
       const response = await api.get("/auth/me");
       setUser(response.data.user);
@@ -212,6 +243,7 @@ function App() {
       return [];
     }
 
+    ensureApiConfigured();
     setStatusMessage("Scanning stored thoughts...");
     setStatusError(false);
     setStatusMessages([]);
@@ -244,6 +276,8 @@ function App() {
       return;
     }
 
+    ensureApiConfigured();
+
     if (!AI_FEATURES_ENABLED) {
       setForgottenIdeas([]);
       return;
@@ -262,6 +296,7 @@ function App() {
       return null;
     }
 
+    ensureApiConfigured();
     setHabitLoading(true);
     setHabitError(false);
     setHabitStatus("");
@@ -407,6 +442,7 @@ function App() {
     );
 
     try {
+      ensureApiConfigured();
       const endpoint = authMode === "register" ? "/auth/register" : "/auth/login";
       const payload =
         authMode === "register"
@@ -442,6 +478,7 @@ function App() {
 
   const handleLogout = async () => {
     try {
+      ensureApiConfigured();
       await api.post("/auth/logout");
     } catch (_error) {
       // Clear local session state even if the cookie is already gone.
@@ -474,6 +511,7 @@ function App() {
     setHabitStatus("Saving today habit log...");
 
     try {
+      ensureApiConfigured();
       await api.post("/habits/log", {
         date: getTodayDate(),
         gymCompleted: Boolean(habitForm.gymCompleted),
@@ -508,6 +546,7 @@ function App() {
     setStatusMessages([]);
 
     try {
+      ensureApiConfigured();
       const response = await api.post(
         "/notes",
         isBatchCreate ? { notes: notePayloads } : notePayloads[0]
@@ -560,6 +599,7 @@ function App() {
     setStatusMessages([]);
 
     try {
+      ensureApiConfigured();
       const response = await api.post("/notes", {
         title: buildVoiceNoteTitle(cleanedTranscript),
         content: cleanedTranscript,
@@ -603,6 +643,7 @@ function App() {
     setStatusMessages([]);
 
     try {
+      ensureApiConfigured();
       const response = await api.post("/ai/suggest-content", {
         title: activeDraft.title.trim(),
         content: activeDraft.content.trim(),
@@ -642,6 +683,7 @@ function App() {
     setStatusMessages([]);
 
     try {
+      ensureApiConfigured();
       const response = await api.post("/ai/recommend-related", {
         title: activeDraft.title.trim(),
         content: activeDraft.content.trim(),
@@ -668,6 +710,7 @@ function App() {
     setStatusMessages([]);
 
     try {
+      ensureApiConfigured();
       await api.put(`/notes/${noteId}`, {
         title: draft.title.trim(),
         content: draft.content.trim(),
@@ -693,6 +736,7 @@ function App() {
     setStatusMessages([]);
 
     try {
+      ensureApiConfigured();
       await api.delete(`/notes/${noteId}`);
       if (selectedNoteId === noteId) {
         setSelectedNoteId(null);
@@ -715,6 +759,7 @@ function App() {
     setStatusMessages([]);
 
     try {
+      ensureApiConfigured();
       await api.post(`/notes/${noteId}/links`, { targetNoteId });
       await loadNotes();
       setSelectedNoteId(noteId);
@@ -734,6 +779,7 @@ function App() {
     setStatusMessages([]);
 
     try {
+      ensureApiConfigured();
       await api.delete(`/notes/${noteId}/links/${targetNoteId}`);
       await loadNotes();
       setSelectedNoteId(noteId);
@@ -753,6 +799,7 @@ function App() {
     setStatusMessages([]);
 
     try {
+      ensureApiConfigured();
       await api.post("/notes/rebuild-links");
       await loadNotes();
       setStatusMessage("Connections rebuilt from your current notes.");
