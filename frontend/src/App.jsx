@@ -8,9 +8,23 @@ import HabitPanel from "./components/HabitPanel";
 import NoteForm from "./components/NoteForm";
 import NotePanel from "./components/NotePanel";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ||
-  (import.meta.env.DEV ? "http://localhost:5000/api" : "");
+const getDefaultApiBaseUrl = () => {
+  if (import.meta.env.DEV) {
+    return "http://localhost:5000/api";
+  }
+
+  if (typeof window !== "undefined") {
+    const localHosts = new Set(["localhost", "127.0.0.1", "::1"]);
+
+    if (localHosts.has(window.location.hostname)) {
+      return "http://localhost:5000/api";
+    }
+  }
+
+  return "";
+};
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || getDefaultApiBaseUrl();
 const AI_FEATURES_ENABLED = import.meta.env.VITE_ENABLE_GEMINI_FEATURES === "true";
 const getTodayDate = () => new Date().toISOString().slice(0, 10);
 
