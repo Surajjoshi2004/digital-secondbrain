@@ -78,7 +78,11 @@ const extractErrorPayload = (error, fallbackMessage) => {
         .filter(Boolean)
     : [];
   let message = responseData?.message || fallbackMessage;
-  let messages = [...new Set([message, ...detailMessages].filter(Boolean))];
+  let messages = [...new Set(detailMessages.filter((detail) => detail !== message))];
+
+  if (!responseData && error.message) {
+    messages = [error.message];
+  }
 
   if (
     statusCode === 404 &&

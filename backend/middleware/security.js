@@ -2,11 +2,26 @@ const ApiError = require("../utils/ApiError");
 
 const JSON_METHODS = new Set(["POST", "PUT", "PATCH"]);
 
-const getAllowedOrigins = () =>
-  (process.env.CLIENT_URL || "http://localhost:3000")
+const getAllowedOrigins = () => {
+  const configuredOrigins = (process.env.CLIENT_URL || "http://localhost:3000")
     .split(",")
     .map((origin) => origin.trim())
     .filter(Boolean);
+
+  if (process.env.NODE_ENV === "production") {
+    return configuredOrigins;
+  }
+
+  return [
+    ...new Set([
+      ...configuredOrigins,
+      "http://localhost:3000",
+      "http://127.0.0.1:3000",
+      "http://localhost:5173",
+      "http://127.0.0.1:5173",
+    ]),
+  ];
+};
 
 const corsOptions = {
   origin(origin, callback) {
