@@ -9,7 +9,8 @@ import NoteForm from "./components/NoteForm";
 import NotePanel from "./components/NotePanel";
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.DEV ? "http://localhost:5000/api" : "");
 const AI_FEATURES_ENABLED = import.meta.env.VITE_ENABLE_GEMINI_FEATURES === "true";
 const getTodayDate = () => new Date().toISOString().slice(0, 10);
 
@@ -81,7 +82,13 @@ const extractErrorPayload = (error, fallbackMessage) => {
   let messages = [...new Set(detailMessages.filter((detail) => detail !== message))];
 
   if (!responseData && error.message) {
-    messages = [error.message];
+    message = "Could not reach the backend API.";
+    messages = [
+      error.message,
+      API_BASE_URL
+        ? `API target: ${API_BASE_URL}`
+        : "Set VITE_API_BASE_URL to your deployed backend URL.",
+    ];
   }
 
   if (
