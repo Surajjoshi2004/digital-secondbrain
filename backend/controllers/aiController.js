@@ -13,7 +13,7 @@ const MAX_AI_TAGS = 20;
 const MAX_AI_TITLE_LENGTH = 200;
 const MAX_AI_TAG_LENGTH = 50;
 
-const normalizeDraftPayload = (body) => {
+const normalizeDraftPayload = (body = {}) => {
   const title = body.title === undefined ? "" : body.title;
   const content = body.content === undefined ? "" : body.content;
   const tags = body.tags === undefined ? [] : body.tags;

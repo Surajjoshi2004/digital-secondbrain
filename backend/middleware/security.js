@@ -1,7 +1,5 @@
 const ApiError = require("../utils/ApiError");
 
-const JSON_METHODS = new Set(["POST", "PUT", "PATCH"]);
-
 const getAllowedOrigins = () => {
   const configuredOrigins = (process.env.CLIENT_URL || "http://localhost:3000")
     .split(",")
@@ -62,27 +60,6 @@ const aiRateLimitOptions = {
   legacyHeaders: false,
 };
 
-const requireJsonBody = (req, _res, next) => {
-  if (
-    req.path.startsWith("/api/") &&
-    JSON_METHODS.has(req.method) &&
-    req.headers["content-length"] !== undefined &&
-    !req.is("application/json")
-  ) {
-    throw new ApiError(415, "Content-Type must be application/json.");
-  }
-
-  next();
-};
-
-const initializeEmptyBody = (req, _res, next) => {
-  if (req.body === undefined) {
-    req.body = {};
-  }
-
-  next();
-};
-
 const hasUnsafeMongoKey = (value) => {
   if (!value || typeof value !== "object") {
     return false;
@@ -111,7 +88,5 @@ module.exports = {
   authRateLimitOptions,
   corsOptions,
   globalRateLimitOptions,
-  initializeEmptyBody,
   rejectUnsafeMongoKeys,
-  requireJsonBody,
 };

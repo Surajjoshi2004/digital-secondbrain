@@ -11,9 +11,7 @@ const {
   authRateLimitOptions,
   corsOptions,
   globalRateLimitOptions,
-  initializeEmptyBody,
   rejectUnsafeMongoKeys,
-  requireJsonBody,
 } = require("./middleware/security");
 const authRoutes = require("./routes/authRoutes");
 const habitRoutes = require("./routes/habitRoutes");
@@ -33,9 +31,7 @@ app.use(
   })
 );
 app.use(rateLimit(globalRateLimitOptions));
-app.use(requireJsonBody);
 app.use(express.json({ limit: "10kb" }));
-app.use(initializeEmptyBody);
 app.use(cookieParser());
 app.use(rejectUnsafeMongoKeys);
 

@@ -27,7 +27,7 @@ const sanitizeUser = (user) => ({
 });
 
 const register = asyncHandler(async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password } = req.body || {};
   const normalizedName = typeof name === "string" ? name.trim() : "";
   const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
 
@@ -74,7 +74,7 @@ const register = asyncHandler(async (req, res) => {
 });
 
 const login = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password } = req.body || {};
 
   if (typeof email !== "string" || typeof password !== "string") {
     throw new ApiError(400, "Email and password are required.");

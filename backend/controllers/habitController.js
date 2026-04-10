@@ -113,15 +113,16 @@ const serializeLog = (log) => ({
 });
 
 const upsertHabitLog = asyncHandler(async (req, res) => {
-  const logDate = parseDateInput(req.body.date, "date") || toUTCDateOnly(new Date());
-  const gymCompleted = parseBooleanInput(req.body.gymCompleted, "gymCompleted");
-  const studyHours = parseNumberInRange(req.body.studyHours, "studyHours", 0, 24);
-  const sleepHours = parseNumberInRange(req.body.sleepHours, "sleepHours", 0, 24);
+  const body = req.body || {};
+  const logDate = parseDateInput(body.date, "date") || toUTCDateOnly(new Date());
+  const gymCompleted = parseBooleanInput(body.gymCompleted, "gymCompleted");
+  const studyHours = parseNumberInRange(body.studyHours, "studyHours", 0, 24);
+  const sleepHours = parseNumberInRange(body.sleepHours, "sleepHours", 0, 24);
   const note =
-    req.body.note === undefined
+    body.note === undefined
       ? undefined
-      : typeof req.body.note === "string"
-      ? req.body.note.trim()
+      : typeof body.note === "string"
+      ? body.note.trim()
       : null;
 
   if (note === null) {

@@ -108,9 +108,10 @@ const normalizeNoteInput = (note, index = 0) => {
 };
 
 const createNote = asyncHandler(async (req, res) => {
-  const inputNotes = Array.isArray(req.body.notes) && req.body.notes.length
-    ? req.body.notes
-    : [req.body];
+  const body = req.body || {};
+  const inputNotes = Array.isArray(body.notes) && body.notes.length
+    ? body.notes
+    : [body];
 
   if (inputNotes.length > MAX_BATCH_NOTES) {
     throw new ApiError(400, `You can create at most ${MAX_BATCH_NOTES} notes at once.`);
@@ -200,6 +201,7 @@ const getNoteById = asyncHandler(async (req, res) => {
 const updateNote = asyncHandler(async (req, res) => {
   const { id } = req.params;
   ensureValidNoteId(id);
+  const body = req.body || {};
 
   const note = await Note.findOne({ _id: id, owner: req.user._id }).select(
     "+keywords"
@@ -209,9 +211,9 @@ const updateNote = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Note not found.");
   }
 
-  const title = normalizeTextField(req.body.title, "Title", MAX_TITLE_LENGTH);
-  const content = normalizeTextField(req.body.content, "Content", MAX_CONTENT_LENGTH);
-  const tags = req.body.tags === undefined ? undefined : normalizeTags(req.body.tags);
+  const title = normalizeTextField(body.title, "Title", MAX_TITLE_LENGTH);
+  const content = normalizeTextField(body.content, "Content", MAX_CONTENT_LENGTH);
+  const tags = body.tags === undefined ? undefined : normalizeTags(body.tags);
 
   if (title !== undefined) {
     note.title = title;
@@ -240,7 +242,7 @@ const updateNote = asyncHandler(async (req, res) => {
 
 const createManualLink = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { targetNoteId } = req.body;
+  const { targetNoteId } = req.body || {};
 
   ensureValidNoteId(id);
   ensureValidNoteId(targetNoteId);
