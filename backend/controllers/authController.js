@@ -11,7 +11,7 @@ const MIN_PASSWORD_LENGTH = 8;
 const COOKIE_OPTIONS = {
   httpOnly: true,
   sameSite: process.env.COOKIE_SAME_SITE || "lax",
-  secure: process.env.NODE_ENV === "production",
+  secure: false, // Temporarily set to false for local testing
   path: "/",
   maxAge: 7 * 24 * 60 * 60 * 1000,
 };

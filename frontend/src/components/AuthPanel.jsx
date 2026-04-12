@@ -158,7 +158,7 @@ function AuthPanel({
             </form>
 
             <div
-              className={`mt-5 rounded-2xl border px-4 py-3 text-sm ${
+              className={`mt-5 rounded-2xl border px-4 py-3 text-sm break-words overflow-hidden ${
                 authError
                   ? "border-rose-400/30 bg-rose-500/10 text-rose-200"
                   : "border-cyan-300/10 bg-cyan-400/5 text-cyan-100/80"
@@ -168,7 +168,9 @@ function AuthPanel({
               {!!authMessages.length && (
                 <ul className="mt-3 space-y-2 text-xs leading-6 text-left">
                   {authMessages.map((message, index) => (
-                    <li key={`${message}-${index}`}>{message}</li>
+                    <li key={`${message}-${index}`} className="break-words">
+                      {message}
+                    </li>
                   ))}
                 </ul>
               )}
