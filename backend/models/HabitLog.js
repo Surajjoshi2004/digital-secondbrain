@@ -34,6 +34,38 @@ const habitLogSchema = new mongoose.Schema(
       default: "",
       maxlength: 500,
     },
+    mood: {
+      type: String,
+      enum: ["energized", "focused", "calm", "mixed", "stressed", "low"],
+      default: "mixed",
+    },
+    moodScore: {
+      type: Number,
+      min: -2,
+      max: 2,
+      default: 0,
+    },
+    moodSource: {
+      type: String,
+      enum: ["manual", "gemini", "heuristic"],
+      default: "heuristic",
+    },
+    moodConfidence: {
+      type: Number,
+      min: 0,
+      max: 1,
+      default: 0.2,
+    },
+    moodSummary: {
+      type: String,
+      trim: true,
+      default: "",
+      maxlength: 280,
+    },
+    moodIndicators: {
+      type: [String],
+      default: [],
+    },
   },
   {
     timestamps: true,

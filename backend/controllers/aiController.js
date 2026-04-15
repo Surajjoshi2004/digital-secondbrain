@@ -7,6 +7,7 @@ const {
   suggestContentForDraft,
   surfaceForgottenIdeas,
 } = require("../services/geminiService");
+const { analyzeFaceMoodFromImage, detectMood } = require("../services/moodService");
 
 const MAX_AI_CONTENT_LENGTH = 12000;
 const MAX_AI_TAGS = 20;
@@ -123,6 +124,50 @@ const suggestRelatedNotes = asyncHandler(async (req, res) => {
   });
 });
 
+const detectDraftMood = asyncHandler(async (req, res) => {
+  const { title, content } = normalizeDraftPayload(req.body);
+
+  if (!content && !title) {
+    throw new ApiError(400, "Provide at least a title or content for mood detection.");
+  }
+
+  const result = await detectMood({
+    title,
+    content,
+    contextLabel: "note draft",
+  });
+
+  res.status(200).json(result);
+});
+
+const analyzeFaceMood = asyncHandler(async (req, res) => {
+  const { imageData } = req.body || {};
+
+  if (typeof imageData !== "string" || !imageData.trim()) {
+    throw new ApiError(400, "imageData is required.");
+  }
+
+  const match = imageData.match(/^data:(image\/(?:png|jpeg|jpg|webp));base64,(.+)$/i);
+
+  if (!match) {
+    throw new ApiError(400, "imageData must be a valid base64 data URL.");
+  }
+
+  const mimeType = match[1].toLowerCase() === "image/jpg" ? "image/jpeg" : match[1].toLowerCase();
+  const base64Payload = match[2];
+
+  if (base64Payload.length > 6_000_000) {
+    throw new ApiError(400, "Captured image is too large. Please try again.");
+  }
+
+  const result = await analyzeFaceMoodFromImage({
+    imageBase64: base64Payload,
+    mimeType,
+  });
+
+  res.status(200).json(result);
+});
+
 const getForgottenIdeas = asyncHandler(async (req, res) => {
   if (!isGeminiEnabled()) {
     return res.status(200).json({
@@ -176,6 +221,8 @@ const getForgottenIdeas = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
+  analyzeFaceMood,
+  detectDraftMood,
   getForgottenIdeas,
   suggestContent,
   suggestRelatedNotes,

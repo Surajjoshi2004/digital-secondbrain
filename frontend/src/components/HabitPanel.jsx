@@ -6,6 +6,31 @@ const streakCardConfig = [
   { key: "sleep", label: "Sleep streak", tone: "sky" },
 ];
 
+const moodOptions = [
+  { value: "auto", label: "Auto-detect from note" },
+  { value: "energized", label: "Energized" },
+  { value: "focused", label: "Focused" },
+  { value: "calm", label: "Calm" },
+  { value: "mixed", label: "Mixed" },
+  { value: "stressed", label: "Stressed" },
+  { value: "low", label: "Low" },
+];
+
+const moodToneClasses = {
+  energized: "border-emerald-400/20 bg-emerald-500/10 text-emerald-100",
+  focused: "border-cyan-400/20 bg-cyan-500/10 text-cyan-100",
+  calm: "border-sky-400/20 bg-sky-500/10 text-sky-100",
+  mixed: "border-slate-400/20 bg-slate-500/10 text-slate-100",
+  stressed: "border-amber-400/20 bg-amber-500/10 text-amber-100",
+  low: "border-rose-400/20 bg-rose-500/10 text-rose-100",
+};
+
+const trendLabels = {
+  improving: "Improving",
+  steady: "Steady",
+  dipping: "Dipping",
+};
+
 const getTiltStyle = (tilt) => {
   const rotateX = tilt?.rotateX || 0;
   const rotateY = tilt?.rotateY || 0;
@@ -140,7 +165,7 @@ function HabitPanel({
             </label>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-[220px_minmax(0,1fr)]">
+          <div className="grid gap-3 md:grid-cols-[220px_220px_minmax(0,1fr)]">
             <label className="block">
               <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
                 Sleep Hours
@@ -155,6 +180,23 @@ function HabitPanel({
                 value={habitForm.sleepHours}
                 onChange={onFieldChange}
               />
+            </label>
+            <label className="block">
+              <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+                Mood
+              </span>
+              <select
+                className="brain-input"
+                name="mood"
+                value={habitForm.mood}
+                onChange={onFieldChange}
+              >
+                {moodOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </label>
             <label className="block">
               <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
@@ -182,6 +224,48 @@ function HabitPanel({
             </button>
           </div>
         </form>
+
+        <div className="mt-5 grid gap-3 md:grid-cols-3">
+          <div className="rounded-[1.2rem] border border-white/10 bg-white/5 p-4">
+            <p className="text-xs uppercase tracking-[0.22em] text-slate-400">
+              Today&apos;s mood
+            </p>
+            <div
+              className={`mt-3 inline-flex rounded-full border px-3 py-1 text-sm font-semibold ${
+                moodToneClasses[habitDashboard?.today?.mood || "mixed"]
+              }`}
+            >
+              {habitDashboard?.today?.mood || "mixed"}
+            </div>
+            <p className="mt-2 text-xs text-slate-400">
+              {habitDashboard?.today?.moodSource === "manual"
+                ? "set manually"
+                : "detected from your note"}
+            </p>
+          </div>
+          <div className="rounded-[1.2rem] border border-white/10 bg-white/5 p-4">
+            <p className="text-xs uppercase tracking-[0.22em] text-slate-400">
+              Mood average
+            </p>
+            <p className="mt-3 text-2xl font-semibold text-white">
+              {habitDashboard?.mood?.averageLabel || "Balanced"}
+            </p>
+            <p className="mt-2 text-xs text-slate-400">
+              score {habitDashboard?.mood?.averageScore ?? 0}
+            </p>
+          </div>
+          <div className="rounded-[1.2rem] border border-white/10 bg-white/5 p-4">
+            <p className="text-xs uppercase tracking-[0.22em] text-slate-400">
+              Trend
+            </p>
+            <p className="mt-3 text-2xl font-semibold text-white">
+              {trendLabels[habitDashboard?.mood?.trend] || "Steady"}
+            </p>
+            <p className="mt-2 text-xs text-slate-400">
+              dominant {habitDashboard?.mood?.dominantMood?.label || "Mixed"}
+            </p>
+          </div>
+        </div>
       </section>
 
       <section className="retro-panel relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.03] p-6 backdrop-blur-xl">
@@ -199,6 +283,13 @@ function HabitPanel({
                 <span>Gym: {log.gymCompleted ? "Yes" : "No"}</span>
                 <span>Study: {log.studyHours}h</span>
                 <span>Sleep: {log.sleepHours}h</span>
+                <span
+                  className={`rounded-full border px-2 py-1 text-xs ${
+                    moodToneClasses[log.mood || "mixed"]
+                  }`}
+                >
+                  Mood: {log.mood || "mixed"}
+                </span>
               </div>
             ))
           ) : (

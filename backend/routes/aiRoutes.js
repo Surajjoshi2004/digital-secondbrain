@@ -1,6 +1,8 @@
 const express = require("express");
 
 const {
+  analyzeFaceMood,
+  detectDraftMood,
   getForgottenIdeas,
   suggestContent,
   suggestRelatedNotes,
@@ -12,6 +14,8 @@ const router = express.Router();
 router.use(protect);
 
 router.post("/suggest-content", suggestContent);
+router.post("/detect-mood", detectDraftMood);
+router.post("/analyze-face", analyzeFaceMood);
 router.post("/recommend-related", suggestRelatedNotes);
 router.get("/forgotten-ideas", getForgottenIdeas);
 

@@ -1,6 +1,12 @@
 const asyncHandler = require("../utils/asyncHandler");
 const ApiError = require("../utils/ApiError");
 const HabitLog = require("../models/HabitLog");
+const {
+  createManualMoodRecord,
+  detectMood,
+  getMoodMeta,
+  normalizeMoodChoice,
+} = require("../services/moodService");
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -84,6 +90,37 @@ const buildDateRange = ({ fromDate, toDate, fallbackDays = 30 }) => {
 
 const buildLogByDateMap = (logs) => new Map(logs.map((log) => [formatUTCDate(log.date), log]));
 
+const getMoodTrend = (logs) => {
+  const scoredLogs = logs.filter((entry) => typeof entry.moodScore === "number");
+
+  if (scoredLogs.length < 2) {
+    return "steady";
+  }
+
+  const recentSlice = scoredLogs.slice(0, Math.min(3, scoredLogs.length));
+  const olderSlice = scoredLogs.slice(Math.min(3, scoredLogs.length), Math.min(6, scoredLogs.length));
+
+  if (!olderSlice.length) {
+    return "steady";
+  }
+
+  const recentAverage =
+    recentSlice.reduce((total, entry) => total + entry.moodScore, 0) / recentSlice.length;
+  const olderAverage =
+    olderSlice.reduce((total, entry) => total + entry.moodScore, 0) / olderSlice.length;
+  const delta = recentAverage - olderAverage;
+
+  if (delta >= 0.5) {
+    return "improving";
+  }
+
+  if (delta <= -0.5) {
+    return "dipping";
+  }
+
+  return "steady";
+};
+
 const getConsecutiveStreak = ({ logsByDate, predicate }) => {
   const today = toUTCDateOnly(new Date());
   let streak = 0;
@@ -109,6 +146,12 @@ const serializeLog = (log) => ({
   studyHours: log.studyHours,
   sleepHours: log.sleepHours,
   note: log.note || "",
+  mood: log.mood || "mixed",
+  moodScore: log.moodScore ?? 0,
+  moodSource: log.moodSource || "heuristic",
+  moodConfidence: log.moodConfidence ?? 0,
+  moodSummary: log.moodSummary || "",
+  moodIndicators: Array.isArray(log.moodIndicators) ? log.moodIndicators : [],
   updatedAt: log.updatedAt,
 });
 
@@ -118,6 +161,7 @@ const upsertHabitLog = asyncHandler(async (req, res) => {
   const gymCompleted = parseBooleanInput(body.gymCompleted, "gymCompleted");
   const studyHours = parseNumberInRange(body.studyHours, "studyHours", 0, 24);
   const sleepHours = parseNumberInRange(body.sleepHours, "sleepHours", 0, 24);
+  const moodChoice = normalizeMoodChoice(body.mood);
   const note =
     body.note === undefined
       ? undefined
@@ -143,10 +187,30 @@ const upsertHabitLog = asyncHandler(async (req, res) => {
     update.note = note;
   }
 
+  let moodRecord = null;
+
+  if (moodChoice && moodChoice !== "auto") {
+    moodRecord = createManualMoodRecord(moodChoice);
+  } else if (moodChoice === "auto" || (note !== undefined && note.trim())) {
+    moodRecord = await detectMood({
+      content: note || "",
+      contextLabel: "habit journal entry",
+    });
+  }
+
+  if (moodRecord) {
+    update.mood = moodRecord.mood;
+    update.moodScore = moodRecord.score;
+    update.moodSource = moodRecord.source;
+    update.moodConfidence = moodRecord.confidence;
+    update.moodSummary = moodRecord.summary;
+    update.moodIndicators = moodRecord.indicators;
+  }
+
   if (!Object.keys(update).length) {
     throw new ApiError(
       400,
-      "At least one field is required: gymCompleted, studyHours, sleepHours, note."
+      "At least one field is required: gymCompleted, studyHours, sleepHours, note, mood."
     );
   }
 
@@ -227,6 +291,30 @@ const getHabitDashboard = asyncHandler(async (req, res) => {
 
   const todayKey = formatUTCDate(new Date());
   const todayLog = logsByDate.get(todayKey);
+  const moodLogs = logs.filter((entry) => typeof entry.moodScore === "number");
+  const averageMoodScore =
+    moodLogs.length === 0
+      ? 0
+      : moodLogs.reduce((total, entry) => total + entry.moodScore, 0) / moodLogs.length;
+  const moodCounts = moodLogs.reduce((acc, entry) => {
+    const key = entry.mood || "mixed";
+    return {
+      ...acc,
+      [key]: (acc[key] || 0) + 1,
+    };
+  }, {});
+  const dominantMoodEntry = Object.entries(moodCounts).sort((left, right) => right[1] - left[1])[0];
+  const dominantMood = dominantMoodEntry
+    ? {
+        mood: dominantMoodEntry[0],
+        label: getMoodMeta(dominantMoodEntry[0]).manualLabel,
+        count: dominantMoodEntry[1],
+      }
+    : {
+        mood: "mixed",
+        label: getMoodMeta("mixed").manualLabel,
+        count: 0,
+      };
 
   res.status(200).json({
     range: {
@@ -246,8 +334,30 @@ const getHabitDashboard = asyncHandler(async (req, res) => {
           studyHours: 0,
           sleepHours: 0,
           note: "",
+          mood: "mixed",
+          moodScore: 0,
+          moodSource: "heuristic",
+          moodConfidence: 0,
+          moodSummary: "",
+          moodIndicators: [],
         },
     streaks,
+    mood: {
+      averageScore: Number(averageMoodScore.toFixed(2)),
+      averageLabel:
+        averageMoodScore >= 1.5
+          ? "Energized"
+          : averageMoodScore >= 0.5
+          ? "Positive"
+          : averageMoodScore <= -1.5
+          ? "Low"
+          : averageMoodScore <= -0.5
+          ? "Strained"
+          : "Balanced",
+      dominantMood,
+      trend: getMoodTrend(logs),
+      counts: moodCounts,
+    },
     totals: {
       loggedDays: logs.length,
       gymDays: totalGymDays,

@@ -18,6 +18,7 @@ const habitRoutes = require("./routes/habitRoutes");
 const noteRoutes = require("./routes/noteRoutes");
 
 const app = express();
+const BODY_SIZE_LIMIT = process.env.BODY_SIZE_LIMIT || "8mb";
 
 if (process.env.NODE_ENV === "production") {
   app.set("trust proxy", 1);
@@ -31,7 +32,8 @@ app.use(
   })
 );
 app.use(rateLimit(globalRateLimitOptions));
-app.use(express.json({ limit: "10kb" }));
+app.use(express.json({ limit: BODY_SIZE_LIMIT }));
+app.use(express.urlencoded({ extended: true, limit: BODY_SIZE_LIMIT }));
 app.use(cookieParser());
 app.use(rejectUnsafeMongoKeys);
 

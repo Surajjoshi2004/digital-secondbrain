@@ -80,14 +80,19 @@ const normalizeGeminiError = (error) => {
   );
 };
 
-const generateStructuredContent = async ({ prompt, schema, model = DEFAULT_MODEL }) => {
+const generateStructuredContent = async ({
+  prompt,
+  contents,
+  schema,
+  model = DEFAULT_MODEL,
+}) => {
   const ai = createClient();
   let response;
 
   try {
     response = await ai.models.generateContent({
       model,
-      contents: prompt,
+      contents: contents || prompt,
       config: {
         responseMimeType: "application/json",
         responseJsonSchema: schema,
@@ -250,6 +255,7 @@ ${JSON.stringify(buildNoteContext(candidateNotes), null, 2)}
 };
 
 module.exports = {
+  generateStructuredContent,
   isGeminiEnabled,
   recommendRelatedNotes,
   suggestContentForDraft,
