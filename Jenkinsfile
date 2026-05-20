@@ -12,8 +12,8 @@ pipeline {
             steps {
                 sh '''
                     if [ ! -d "$NODE_DIR" ]; then
-                        curl -fsSL https://nodejs.org/dist/v20.18.0/node-v20.18.0-linux-x64.tar.xz -o node.tar.xz
-                        tar -xf node.tar.xz
+                        curl -fsSL https://nodejs.org/dist/v20.18.0/node-v20.18.0-linux-x64.tar.gz -o node.tar.gz
+                        tar -xzf node.tar.gz
                     fi
                     node --version
                     npm --version
