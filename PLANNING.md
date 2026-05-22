@@ -6,7 +6,7 @@ Digital Second Brain — a full-stack personal knowledge engine with AI-powered 
 
 - **Backend:** Node.js + Express 5 + Mongoose 9 + JWT auth + Google Gemini AI
 - **Frontend:** React 19 + Vite 7 + Tailwind CSS 4 + react-force-graph-2d + Three.js
-- **Deployment:** Netlify (frontend), backend TBD
+- **Deployment:** EC2 (frontend + backend on same instance via nginx)
 - **CI/CD:** GitHub Actions (CI on push/PR, publish on release)
 - **Auth:** JWT httpOnly cookies with .env configuration
 
