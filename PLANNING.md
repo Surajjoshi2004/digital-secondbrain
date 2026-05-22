@@ -7,8 +7,10 @@ Digital Second Brain — a full-stack personal knowledge engine with AI-powered 
 - **Backend:** Node.js + Express 5 + Mongoose 9 + JWT auth + Google Gemini AI
 - **Frontend:** React 19 + Vite 7 + Tailwind CSS 4 + react-force-graph-2d + Three.js
 - **Deployment:** Netlify (frontend), backend TBD
+- **CI/CD:** GitHub Actions (CI on push/PR, publish on release)
+- **Auth:** JWT httpOnly cookies with .env configuration
 
-## Current State (v1.0)
+## Current State (v1.1.0)
 
 ### Implemented Features
 - User auth (register/login/logout with JWT httpOnly cookies)
@@ -27,7 +29,7 @@ Digital Second Brain — a full-stack personal knowledge engine with AI-powered 
 - Retro/neural UI theme
 
 ### Known Gaps
-- No tests (backend `npm test` is a placeholder)
+- No tests (backend `npm test` has placeholder tests)
 - No client-side routing (uses `currentView` state — no deep linking)
 - No pagination on notes/graph endpoints
 - No bulk delete or note archiving (hard delete only)
@@ -41,6 +43,17 @@ Digital Second Brain — a full-stack personal knowledge engine with AI-powered 
 - No loading skeletons or error boundaries
 - Minimal accessibility (ARIA, keyboard nav)
 - No API documentation (Swagger/OpenAPI)
+
+### Recent Improvements (v1.1.0)
+- Replaced Jenkins pipeline with GitHub Actions CI (runs tests + build on push/PR)
+- Added frontend build step to CI (catches build errors early)
+- Created `.env` configuration files for both backend and frontend
+- Fixed graph canvas label overlapping (truncated text, dark backgrounds)
+- Moved graph info panel to right side to avoid overlap with status messages
+- Truncated overflowing keyword lists in note panel
+- Reduced dashboard heading size for mobile
+- Cleaned up dashboard — removed redundant cards, fake metrics, and Process Nodes section
+- Simplified dashboard layout to core essentials: BrainCore, Recent thoughts, System log, Navigation
 
 ## Phased Plan
 
@@ -94,7 +107,7 @@ Digital Second Brain — a full-stack personal knowledge engine with AI-powered 
 - [ ] E2E tests (Playwright/Cypress)
 - [ ] Performance budget and Lighthouse audit
 - [ ] PWA support (offline mode, service worker)
-- [ ] CI/CD pipeline (GitHub Actions)
+- [x] CI/CD pipeline (GitHub Actions)
 - [ ] Backend deployment (Railway/Fly.io/Render)
 
 ## Architecture Decisions
@@ -110,4 +123,4 @@ Digital Second Brain — a full-stack personal knowledge engine with AI-powered 
 - `secure: false` on cookies — temporarily set for local testing; must flip before production
 - `ENABLE_GEMINI_FEATURES=false` by default — users must explicitly opt in
 - No `.env` validation at startup — app won't fail fast on missing required vars
-- Frontend `App.jsx` at 1676 lines — major refactor candidate as features grow
+- Frontend `App.jsx` at ~1429 lines — major refactor candidate as features grow
