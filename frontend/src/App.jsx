@@ -408,24 +408,7 @@ function App() {
     [notes]
   );
 
-  const manualConnections = useMemo(
-    () =>
-      notes.reduce(
-        (count, note) => count + (note.relatedNotes || []).filter((entry) => entry.isManual).length,
-        0
-      ),
-    [notes]
-  );
-
-  const noteDensity = notes.length ? totalConnections / notes.length : 0;
   const activeTagCount = availableTags.length;
-  const taggedNotesCount = notes.filter((note) => (note.tags || []).length).length;
-  const connectedNotesCount = notes.filter(
-    (note) => (note.relatedNotes || []).filter((entry) => entry.note?._id).length
-  ).length;
-  const connectionCoverage = notes.length
-    ? Math.round((connectedNotesCount / notes.length) * 100)
-    : 0;
   const habitToday = habitDashboard?.today;
   const studyHoursToday = Number(habitToday?.studyHours || 0);
   const sleepHoursToday = Number(habitToday?.sleepHours || 0);
@@ -436,36 +419,6 @@ function App() {
       (habitToday?.gymCompleted ? 4 : 0) +
       studyHoursToday * 1.5
   );
-  const recallReserve = clampPercent(45 + taggedNotesCount * 5 + sleepHoursToday * 4);
-  const syncLatency = Math.max(8, 42 - Math.min(notes.length, 20) - manualConnections * 2);
-  const focusScore = clampPercent(
-    48 + studyHoursToday * 7 + (habitToday?.mood === "focused" ? 14 : 0)
-  );
-  const creativeScore = clampPercent(
-    54 + activeTagCount * 5 + (habitToday?.mood === "energized" ? 12 : 0)
-  );
-  const consistencyScore = clampPercent(
-    36 +
-      Number(habitDashboard?.streaks?.gym || 0) * 6 +
-      Number(habitDashboard?.streaks?.study || 0) * 4 +
-      Number(habitDashboard?.streaks?.sleep || 0) * 5
-  );
-  const recentNodeRows = notes.slice(0, 4).map((note, index) => ({
-    id: note._id,
-    name: note.title,
-    address: `node://${(note.tags?.[0] || "untagged").toLowerCase()}.${String(index + 1).padStart(2, "0")}`,
-    load: clampPercent(
-      38 + (note.relatedNotes || []).filter((entry) => entry.note?._id).length * 12
-    ),
-    tone:
-      index % 4 === 0
-        ? "cyan"
-        : index % 4 === 1
-        ? "violet"
-        : index % 4 === 2
-        ? "green"
-        : "amber",
-  }));
   const commandLogEntries = [
     {
       time: "LIVE",
@@ -1038,97 +991,14 @@ function App() {
   }
 
   const renderDashboardView = () => (
-    <main className="grid flex-1 gap-4 xl:grid-cols-[300px_minmax(0,1fr)_320px]">
-      <section className="retro-panel neural-card neural-grid-shell rounded-[2rem] p-5">
-        <p className="neural-kicker">Cognitive Metrics</p>
-
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-          <div className="neural-metric-card neural-metric-card-cyan">
-            <span className="neural-metric-label">Recall reserve</span>
-            <strong className="neural-metric-value">{recallReserve}%</strong>
-            <span className="neural-metric-meta">{taggedNotesCount} tagged memories available</span>
-          </div>
-          <div className="neural-metric-card neural-metric-card-violet">
-            <span className="neural-metric-label">Synapse density</span>
-            <strong className="neural-metric-value">{noteDensity.toFixed(1)}</strong>
-            <span className="neural-metric-meta">{Math.round(totalConnections / 2)} active bridges</span>
-          </div>
-          <div className="neural-metric-card neural-metric-card-green">
-            <span className="neural-metric-label">Focus vector</span>
-            <strong className="neural-metric-value">{focusScore}%</strong>
-            <span className="neural-metric-meta">
-              {studyHoursToday ? `${studyHoursToday}h study logged today` : "No study telemetry yet"}
-            </span>
-          </div>
-          <div className="neural-metric-card neural-metric-card-amber">
-            <span className="neural-metric-label">Sync latency</span>
-            <strong className="neural-metric-value">{syncLatency}ms</strong>
-            <span className="neural-metric-meta">{manualConnections} pinned pathways</span>
-          </div>
-        </div>
-
-        <div className="mt-6">
-          <div className="flex items-center justify-between gap-3">
-            <p className="neural-kicker">Process Nodes</p>
-            <button
-              type="button"
-              onClick={() => setCurrentView("notes")}
-              className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-100 transition hover:bg-cyan-400/18"
-            >
-              Open Notes
-            </button>
-          </div>
-          <div className="mt-3 space-y-3">
-            {recentNodeRows.length ? (
-              recentNodeRows.map((node) => (
-                <button
-                  key={node.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedNoteId(node.id);
-                    setCurrentView("notes");
-                  }}
-                  className="neural-node-row w-full text-left"
-                >
-                  <div
-                    className={`neural-node-dot ${
-                      node.tone === "cyan"
-                        ? "neural-node-dot-cyan"
-                        : node.tone === "violet"
-                        ? "neural-node-dot-violet"
-                        : node.tone === "green"
-                        ? "neural-node-dot-green"
-                        : "neural-node-dot-amber"
-                    }`}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-medium text-white">{node.name}</div>
-                    <div className="truncate text-[11px] uppercase tracking-[0.22em] text-slate-500">
-                      {node.address}
-                    </div>
-                  </div>
-                  <div className="neural-node-meter">
-                    <span style={{ width: `${node.load}%` }} />
-                  </div>
-                </button>
-              ))
-            ) : (
-              <div className="rounded-[1.4rem] border border-dashed border-white/10 bg-white/5 p-4 text-sm text-slate-300/70">
-                Add a few notes and your control panel will start listing active memory nodes.
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-
+    <main className="grid flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
       <section className="grid gap-4">
         <div className="retro-panel neural-core-shell overflow-hidden rounded-[2rem] p-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="neural-kicker neural-kicker-cyan">Neural Core</p>
-              <h2 className="mt-3 max-w-2xl font-mono text-3xl font-semibold uppercase tracking-[0.08em] text-white md:text-4xl">
-                Command the second brain like a live system, not a static notes app.
-              </h2>
+              <p className="neural-kicker neural-kicker-cyan">
+                {notes.length} notes · {totalConnections} connections · {activeTagCount || 0} tags
+              </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <button
@@ -1148,30 +1018,11 @@ function App() {
             </div>
           </div>
 
-          <div className="mt-5 grid gap-3 md:grid-cols-4">
-            <div className="neural-top-stat">
-              <span className="neural-top-stat-label">Cognition</span>
-              <strong className="neural-top-stat-value">{cognitiveLoad.toFixed(1)}%</strong>
-            </div>
-            <div className="neural-top-stat">
-              <span className="neural-top-stat-label">Memory clusters</span>
-              <strong className="neural-top-stat-value">{activeTagCount || 1}</strong>
-            </div>
-            <div className="neural-top-stat">
-              <span className="neural-top-stat-label">Signal coverage</span>
-              <strong className="neural-top-stat-value">{connectionCoverage}%</strong>
-            </div>
-            <div className="neural-top-stat">
-              <span className="neural-top-stat-label">Local time</span>
-              <strong className="neural-top-stat-value">{formatCommandClock(dashboardClock)}</strong>
-            </div>
-          </div>
-
           <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
             <div className="neural-graph-stage">
               <div className="neural-graph-hud">
                 <span className="neural-live-dot" />
-                Live stream · memory field online
+                Brain core
               </div>
               <div className="flex min-h-[520px] items-center justify-center p-6">
                 <BrainCoreDisplay
@@ -1185,226 +1036,128 @@ function App() {
 
             <div className="space-y-4">
               <div className="neural-side-panel">
-                <p className="neural-kicker neural-kicker-violet">Search stream</p>
+                <p className="neural-kicker neural-kicker-cyan">Recent thoughts</p>
                 <div className="mt-3 space-y-3">
-                  <label className="block">
-                    <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
-                      Search notes
-                    </span>
-                    <input
-                      className="brain-input"
-                      value={searchQuery}
-                      onChange={(event) => setSearchQuery(event.target.value)}
-                      placeholder="Search title, content, or tags"
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
-                      Filter cluster
-                    </span>
-                    <select
-                      className="brain-input"
-                      value={activeTag}
-                      onChange={(event) => setActiveTag(event.target.value)}
-                    >
-                      <option value="">All tags</option>
-                      {availableTags.map((tag) => (
-                        <option key={tag} value={tag}>
-                          {tag}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  {(searchQuery || activeTag) && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSearchQuery("");
-                        setActiveTag("");
-                      }}
-                      className="w-full rounded-full border border-white/10 bg-white/5 px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-200 transition hover:bg-white/10"
-                    >
-                      Clear filters
-                    </button>
+                  {recentNotes.length ? (
+                    recentNotes.map((note) => (
+                      <button
+                        key={note._id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedNoteId(note._id);
+                          setCurrentView("notes");
+                        }}
+                        className="neural-note-row w-full text-left"
+                      >
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-medium text-white">{note.title}</div>
+                          <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-300/70">
+                            {note.content}
+                          </p>
+                        </div>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="rounded-[1.4rem] border border-dashed border-white/10 bg-white/5 p-4 text-sm text-slate-300/70">
+                      Add your first notes to start feeding the digital brain.
+                    </div>
                   )}
                 </div>
               </div>
 
               <div className="neural-side-panel">
-                <p className="neural-kicker neural-kicker-green">Signal gauges</p>
-                <div className="mt-4 space-y-4">
-                  <div>
-                    <div className="mb-2 flex items-center justify-between text-xs uppercase tracking-[0.22em] text-slate-400">
-                      <span>Creative bandwidth</span>
-                      <span>{creativeScore}%</span>
+                <p className="neural-kicker neural-kicker-violet">System</p>
+                <div className="mt-3 space-y-3">
+                  {commandLogEntries.map((entry) => (
+                    <div
+                      key={`${entry.time}-${entry.tag}`}
+                      className={`neural-log-row ${
+                        entry.tone === "critical"
+                          ? "neural-log-row-critical"
+                          : entry.tone === "warn"
+                          ? "neural-log-row-warn"
+                          : entry.tone === "ok"
+                          ? "neural-log-row-ok"
+                          : ""
+                      }`}
+                    >
+                      <span className="neural-log-time">{entry.time}</span>
+                      <span className="neural-log-tag">{entry.tag}</span>
+                      <span className="text-sm leading-6 text-slate-200/85">{entry.message}</span>
                     </div>
-                    <div className="neural-gauge-bar"><span style={{ width: `${creativeScore}%` }} /></div>
-                  </div>
-                  <div>
-                    <div className="mb-2 flex items-center justify-between text-xs uppercase tracking-[0.22em] text-slate-400">
-                      <span>Consistency</span>
-                      <span>{consistencyScore}%</span>
-                    </div>
-                    <div className="neural-gauge-bar neural-gauge-bar-violet"><span style={{ width: `${consistencyScore}%` }} /></div>
-                  </div>
-                  <div>
-                    <div className="mb-2 flex items-center justify-between text-xs uppercase tracking-[0.22em] text-slate-400">
-                      <span>Visible notes</span>
-                      <span>{filteredNotes.length}</span>
-                    </div>
-                    <div className="neural-gauge-bar neural-gauge-bar-green">
-                      <span style={{ width: `${notes.length ? (filteredNotes.length / notes.length) * 100 : 0}%` }} />
-                    </div>
-                  </div>
+                  ))}
+                </div>
+
+                <div
+                  className={`mt-4 rounded-[1.4rem] border px-4 py-4 text-sm ${
+                    statusError
+                      ? "border-rose-400/30 bg-rose-500/10 text-rose-200"
+                      : "border-cyan-300/10 bg-cyan-400/5 text-cyan-100/80"
+                  }`}
+                >
+                  {statusMessage}
+                  {!!statusMessages.length && (
+                    <ul className="mt-3 space-y-2 text-xs leading-6">
+                      {statusMessages.map((message, index) => (
+                        <li key={`${message}-${index}`}>{message}</li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               </div>
             </div>
           </div>
-        </div>
-
-        <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
-          <section className="retro-panel neural-card neural-grid-shell rounded-[2rem] p-5">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="neural-kicker neural-kicker-cyan">Recent thoughts</p>
-                <p className="mt-2 text-sm text-slate-300/80">
-                  Jump back into the newest memory traces without leaving the command floor.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setCurrentView("notes")}
-                className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-100 transition hover:bg-cyan-400/18"
-              >
-                Note Library
-              </button>
-            </div>
-
-            <div className="mt-4 space-y-3">
-              {recentNotes.length ? (
-                recentNotes.map((note) => (
-                  <button
-                    key={note._id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedNoteId(note._id);
-                      setCurrentView("notes");
-                    }}
-                    className="neural-note-row w-full text-left"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="truncate text-base font-medium text-white">{note.title}</div>
-                        <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-300/78">
-                          {note.content}
-                        </p>
-                      </div>
-                      <div className="rounded-full border border-cyan-300/15 bg-cyan-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-100">
-                        {(note.relatedNotes || []).filter((entry) => entry.note).length} links
-                      </div>
-                    </div>
-                  </button>
-                ))
-              ) : (
-                <div className="rounded-[1.4rem] border border-dashed border-white/10 bg-white/5 p-4 text-sm text-slate-300/70">
-                  Add your first notes to start feeding the digital brain.
-                </div>
-              )}
-            </div>
-          </section>
-
-          <section className="retro-panel neural-card neural-grid-shell rounded-[2rem] p-5">
-            <p className="neural-kicker neural-kicker-violet">System log</p>
-            <div className="mt-4 space-y-3">
-              {commandLogEntries.map((entry) => (
-                <div
-                  key={`${entry.time}-${entry.tag}`}
-                  className={`neural-log-row ${
-                    entry.tone === "critical"
-                      ? "neural-log-row-critical"
-                      : entry.tone === "warn"
-                      ? "neural-log-row-warn"
-                      : entry.tone === "ok"
-                      ? "neural-log-row-ok"
-                      : ""
-                  }`}
-                >
-                  <span className="neural-log-time">{entry.time}</span>
-                  <span className="neural-log-tag">{entry.tag}</span>
-                  <span className="text-sm leading-6 text-slate-200/85">{entry.message}</span>
-                </div>
-              ))}
-            </div>
-
-            <div
-              className={`mt-5 rounded-[1.4rem] border px-4 py-4 text-sm ${
-                statusError
-                  ? "border-rose-400/30 bg-rose-500/10 text-rose-200"
-                  : "border-cyan-300/10 bg-cyan-400/5 text-cyan-100/80"
-              }`}
-            >
-              {statusMessage}
-              {!!statusMessages.length && (
-                <ul className="mt-3 space-y-2 text-xs leading-6">
-                  {statusMessages.map((message, index) => (
-                    <li key={`${message}-${index}`}>{message}</li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </section>
         </div>
       </section>
 
       <section className="retro-panel neural-card neural-grid-shell rounded-[2rem] p-5">
-        <p className="neural-kicker neural-kicker-violet">Mission Status</p>
-
+        <p className="neural-kicker">Navigation</p>
         <div className="mt-4 grid gap-3">
-          <div className="neural-mini-card">
-            <span className="neural-mini-label">Selected memory</span>
-            <strong className="neural-mini-value">{selectedNote?.title || "No note selected"}</strong>
-            <span className="neural-mini-meta">Current focal thought for editing or graph zoom.</span>
-          </div>
-          <div className="neural-mini-card">
-            <span className="neural-mini-label">Habit stream</span>
-            <strong className="neural-mini-value">
-              {habitToday?.gymCompleted ? "Gym logged" : "Gym pending"}
-            </strong>
-            <span className="neural-mini-meta">
-              Sleep {sleepHoursToday}h · Study {studyHoursToday}h · Mood {habitToday?.mood || "mixed"}
-            </span>
-          </div>
-          <div className="neural-mini-card">
-            <span className="neural-mini-label">Idea resurfacing</span>
-            <strong className="neural-mini-value">{forgottenIdeas.length}</strong>
-            <span className="neural-mini-meta">Older notes suggested for deliberate revisit.</span>
-          </div>
+          <button
+            type="button"
+            onClick={() => setCurrentView("notes")}
+            className="neural-action-btn"
+          >
+            Notes
+          </button>
+          <button
+            type="button"
+            onClick={() => setCurrentView("graph")}
+            className="neural-action-btn"
+          >
+            Graph
+          </button>
+          <button
+            type="button"
+            onClick={() => setCurrentView("habits")}
+            className="neural-action-btn"
+          >
+            Habits
+          </button>
+          <button
+            type="button"
+            onClick={() => setCurrentView("face")}
+            className="neural-action-btn"
+          >
+            Face Mood
+          </button>
         </div>
 
         <div className="mt-6">
-          <p className="neural-kicker neural-kicker-green">Quick launch</p>
-          <div className="mt-3 grid gap-3">
-            <button
-              type="button"
-              onClick={() => setCurrentView("notes")}
-              className="neural-action-btn"
-            >
-              Draft or edit notes
-            </button>
-            <button
-              type="button"
-              onClick={() => setCurrentView("habits")}
-              className="neural-action-btn"
-            >
-              Open habit tracker
-            </button>
-            <button
-              type="button"
-              onClick={() => setCurrentView("face")}
-              className="neural-action-btn"
-            >
-              Analyze face mood
-            </button>
+          <p className="neural-kicker neural-kicker-violet">Today</p>
+          <div className="mt-3 space-y-3">
+            <div className="neural-mini-card">
+              <span className="neural-mini-label">Sleep</span>
+              <strong className="neural-mini-value">{sleepHoursToday}h</strong>
+            </div>
+            <div className="neural-mini-card">
+              <span className="neural-mini-label">Study</span>
+              <strong className="neural-mini-value">{studyHoursToday}h</strong>
+            </div>
+            <div className="neural-mini-card">
+              <span className="neural-mini-label">Gym</span>
+              <strong className="neural-mini-value">{habitToday?.gymCompleted ? "Done" : "Pending"}</strong>
+            </div>
           </div>
         </div>
       </section>
@@ -1624,7 +1377,7 @@ function App() {
                   Visible cluster load {filteredNotes.length}/{notes.length || 0}
                 </div>
                 <div className="neural-banner-chip">
-                  Coverage {connectionCoverage}% connected
+                  {notes.length} notes stored
                 </div>
               </div>
 

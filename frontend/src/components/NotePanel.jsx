@@ -244,7 +244,7 @@ function NotePanel({
                         </span>
                       </div>
                     </div>
-                    <p className="mt-3 text-xs uppercase tracking-[0.24em] text-slate-500">
+                    <p className="mt-3 truncate text-xs uppercase tracking-[0.24em] text-slate-500">
                       {(entry.sharedKeywords || []).join(" | ") || "semantic link"}
                     </p>
                     {entry.isManual && (

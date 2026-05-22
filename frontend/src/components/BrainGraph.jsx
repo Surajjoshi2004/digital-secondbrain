@@ -431,14 +431,14 @@ function BrainGraph({
       )}
 
       {!minimal && (hoveredNode || selectedNode) && (
-        <div className="absolute bottom-6 left-6 z-10 max-w-sm rounded-[1.6rem] border border-white/10 bg-slate-950/70 p-4 backdrop-blur-md">
+        <div className="absolute bottom-6 right-6 z-10 max-w-xs rounded-[1.6rem] border border-white/10 bg-slate-950/70 p-4 backdrop-blur-md">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-fuchsia-300/70">
             {hoveredNode ? "Hover Signal" : "Focused Thought"}
           </p>
-          <h3 className="mt-2 text-xl font-semibold text-white">
+          <h3 className="mt-2 text-base font-semibold text-white truncate">
             {(hoveredNode || selectedNode)?.title}
           </h3>
-          <p className="mt-3 text-sm leading-7 text-slate-300/80">
+          <p className="mt-3 text-sm leading-6 text-slate-300/80 line-clamp-4">
             {(hoveredNode || selectedNode)?.content}
           </p>
         </div>
@@ -531,11 +531,30 @@ function BrainGraph({
           ctx.fill();
 
           if (showLabels && (isSelected || isHovered || isConnected)) {
-            const fontSize = 13 / globalScale;
+            const fontSize = Math.min(13 / globalScale, 13);
             ctx.font = `600 ${fontSize}px Sans-Serif`;
-            ctx.fillStyle = "rgba(226, 232, 240, 0.95)";
             ctx.textAlign = "center";
-            ctx.fillText(node.title, node.x, node.y - 16 / globalScale);
+            ctx.textBaseline = "bottom";
+            const maxLabelLen = 22;
+            const label = node.title.length > maxLabelLen ? node.title.slice(0, maxLabelLen - 2) + "…" : node.title;
+            const metrics = ctx.measureText(label);
+            const pad = 6 / globalScale;
+            const labelX = node.x;
+            const labelY = node.y - 14 / globalScale;
+            const labelW = metrics.width + pad * 2;
+            const bgW = Math.min(labelW, 160 / globalScale + pad * 2);
+            const bgH = fontSize + pad * 2;
+            const rx = 4 / globalScale;
+            ctx.fillStyle = "rgba(2, 6, 23, 0.75)";
+            ctx.beginPath();
+            if (typeof ctx.roundRect === "function") {
+              ctx.roundRect(labelX - bgW / 2, labelY - bgH, bgW, bgH, rx);
+            } else {
+              ctx.rect(labelX - bgW / 2, labelY - bgH, bgW, bgH);
+            }
+            ctx.fill();
+            ctx.fillStyle = "rgba(226, 232, 240, 0.95)";
+            ctx.fillText(label, labelX, labelY - pad / 2);
           }
           ctx.restore();
         }}
